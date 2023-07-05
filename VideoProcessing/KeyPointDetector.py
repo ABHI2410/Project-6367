@@ -19,7 +19,7 @@ class KeyPointDetector:
     drawing = mp.solutions.drawing_utils
     face_spec = drawing.DrawingSpec(color=BLUE, thickness=1, circle_radius=1)
     pose_spec = drawing.DrawingSpec(color=WHITE, thickness=3, circle_radius=3)
-    hand_spec = drawing.DrawingSpec(color=WHITE, thickness=3, circle_radius=3)
+    hand_spec = drawing.DrawingSpec(color=BLACK, thickness=3, circle_radius=3)
     dot_spec = drawing.DrawingSpec(color=RED, thickness=2, circle_radius=3)
     image_folder = "../Dataset/images"
     frames_folder = "../Dataset/frames"
