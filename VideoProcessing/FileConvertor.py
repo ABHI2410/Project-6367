@@ -2,10 +2,9 @@ import cv2
 import os
 import pandas as pd
 from tqdm import tqdm
-# from skimage.io import Video
-
-
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from KeyPointDetector import KeyPointDetector
+from multiprocessing import Pool
 
 class Convertor:
     def __init__(self) -> None:
@@ -29,44 +28,39 @@ class Convertor:
 
     def video_clipping(self):
         df = pd.read_csv(self.csv_location, sep= "	", header= 0)
-        for row in tqdm(df.itertuples(index=True, name='Pandas')):
+        def clip(row):
             video_name = row.VIDEO_NAME
             start_time = row.START_REALIGNED
             end_time = row.END_REALIGNED
-            from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
             ffmpeg_extract_subclip(self.video_location +'/'+ video_name + ".mp4", start_time, end_time, targetname=f"{self.video_clip_location}/{video_name}{str(start_time).replace('.', '')}{str(end_time).replace('.', '')}.mp4")
+        with Pool(processes=4) as pool:
+            tqdm(pool.imap(clip,df.itertuples(index=True, name='Pandas')))
+
+           
 
 
     def process_video(self,video_name):
-        print(video_name)
         input = cv2.VideoCapture(self.video_clip_location + '/' + video_name)
-        print("input provided", os.getpid())
         output = cv2.VideoWriter(
             self.procesed_video_location + '/' + video_name,
             cv2.VideoWriter_fourcc('m','p','4','v'),
             30, 
             (1280,720)
             )
-        print("Starting Keypoint detection",os.getpid())
+        obj = KeyPointDetector()
         while input.isOpened():
             _i , frame = input.read()
             if (_i):
-                print("inside if statement", os.getpid())
-                obj = KeyPointDetector()
-                print("obj created", os.getpid())
-                frame_output = obj.keypoints(frame)
-                print("landmark done", os.getpid())
-                del obj
+                frame_output = obj.keypoints(frame)              
                 output.write(frame_output)
                 if cv2.waitKey(1) == ord('q'):
                     break
             else:
                 break
-        print("before release", os.getpid())
+        del obj
         output.release()
         input.release()
-        print("released", os.getpid())
         cv2.destroyAllWindows()
-        # print("Completed key point detection")
+        print("Completed key point detection")
         return 0
 
