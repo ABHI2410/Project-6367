@@ -6,7 +6,7 @@ from time import sleep
 from multiprocessing import Process, Pool
 
 
-def process(count, file):
+def process(file):
     con = Convertor()
     con.process_video(file)
 
