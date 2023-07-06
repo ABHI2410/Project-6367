@@ -40,6 +40,9 @@ class Convertor:
 
 
     def process_video(self,video_name):
+        if os.path.isfile(self.procesed_video_location + '/' + video_name):
+            print("Proccess completed once before for file: ",video_name)
+            return 0
         input = cv2.VideoCapture(self.video_clip_location + '/' + video_name)
         output = cv2.VideoWriter(
             self.procesed_video_location + '/' + video_name,
@@ -61,6 +64,6 @@ class Convertor:
         output.release()
         input.release()
         cv2.destroyAllWindows()
-        print("Completed key point detection")
+        print("Completed key point detection for file: ", video_name)
         return 0
 
