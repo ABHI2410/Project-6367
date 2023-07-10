@@ -13,6 +13,8 @@ class Convertor:
         os.chdir("../../../../../../../d")
         os.chdir("Project-6367/Dataset/raw_videos")
         self.video_location = os.getcwd()
+        os.chdir("../clip_videos")
+        self.video_clip_location = os.getcwd()
         os.chdir("../raw_data/")
         self.csv_location = os.getcwd() + '/' + "how2sign_realigned_train.csv"
         os.chdir("../../../../c/Users/patel/OneDrive/Documents/Project-6367")
@@ -22,8 +24,7 @@ class Convertor:
         self.procesed_video_location = os.getcwd()
         os.chdir("../")
         # os.makedirs("clip_videos")
-        os.chdir("clip_videos")
-        self.video_clip_location = os.getcwd()
+
         os.chdir("../VideoProcessing")
 
     def video_clipping(self):
@@ -36,34 +37,33 @@ class Convertor:
         with Pool(processes=4) as pool:
             tqdm(pool.imap(clip,df.itertuples(index=True, name='Pandas')))
 
-           
 
-
-    def process_video(self,video_name):
-        if os.path.isfile(self.procesed_video_location + '/' + video_name):
-            print("Proccess completed once before for file: ",video_name)
-            return 0
-        input = cv2.VideoCapture(self.video_clip_location + '/' + video_name)
-        output = cv2.VideoWriter(
-            self.procesed_video_location + '/' + video_name,
-            cv2.VideoWriter_fourcc('m','p','4','v'),
-            30, 
-            (1280,720)
-            )
-        obj = KeyPointDetector()
-        while input.isOpened():
-            _i , frame = input.read()
-            if (_i):
-                frame_output = obj.keypoints(frame)              
-                output.write(frame_output)
-                if cv2.waitKey(1) == ord('q'):
+    def video_2_frame(self,video_name):
+        try:
+            if os.path.isfile(self.procesed_video_location + '/' + video_name.split('.')[0]):
+                # print("Proccess completed once before for file: ",video_name)
+                return 0
+            input = cv2.VideoCapture(self.video_clip_location + '/' + video_name)
+            if not input.isOpened():
+                return
+            os.makedirs(self.procesed_video_location+'/'+video_name.split('.')[0])
+            base_path = self.procesed_video_location+'/'+ video_name.split('.')[0]
+            digit = len(str(int(input.get(cv2.CAP_PROP_FRAME_COUNT))))
+            n=0
+            while True:
+                _i , frame = input.read()
+                if (_i):
+                    cv2.imwrite(f'{base_path}_{str(n).zfill(digit)}.jpg',frame)
+                    n += 1
+                    if cv2.waitKey(1) == ord('q'):
+                        break
+                else:
                     break
-            else:
-                break
-        del obj
-        output.release()
-        input.release()
-        cv2.destroyAllWindows()
-        print("Completed key point detection for file: ", video_name)
-        return 0
-
+            input.release()
+            cv2.destroyAllWindows()
+            # print("Completed key point detection for file: ", video_name)
+            return 0
+        except Exception as e:
+            print(e)
+            print("This video had error processing: ",video_name)
+            return 0 

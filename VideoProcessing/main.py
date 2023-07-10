@@ -1,14 +1,12 @@
 from glob import glob
 from FileConvertor import Convertor
-from KeyPointDetector import KeyPointDetector
-from tqdm import tqdm
-from time import sleep
-from multiprocessing import Process, Pool
+from tqdm.contrib.concurrent import process_map
+
 
 
 def process(file):
     con = Convertor()
-    con.process_video(file)
+    con.video_2_frame(file)
 
 
 
@@ -18,6 +16,6 @@ print("Start")
 files = []
 for counter,name in enumerate(sorted(glob('../clip_videos/*.mp4'))):
     files.append(name.split('/')[-1])
-with Pool(processes=4 , maxtasksperchild= 2) as pool:
-    tqdm(pool.map(process,files))
+process_map(process,files,max_workers=4, chunksize=1)
 print("completed video pre processing")
+
