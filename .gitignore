@@ -162,6 +162,3 @@ cython_debug/
 
 #Media files
 *.mp4
-*.jpg
-*.jpeg
-
