@@ -162,3 +162,7 @@ cython_debug/
 
 #Media files
 *.mp4
+*.jpg
+*.h5
+*.txt
+*.tflite

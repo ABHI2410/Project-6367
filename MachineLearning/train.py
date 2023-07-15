@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader, IterableDataset
+from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
+from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import cv2
 import os
@@ -26,13 +27,7 @@ def extract_face_landmarks(frame):
     mp_face.close()
     return results
 
-class IterDataset(IterableDataset):
-    def __init__(self, generator):
-        self.generator = generator
 
-    def __iter__(self):
-        return self.generator()
-    
 # Define the 3D CNN model
 class CNN3D(nn.Module):
     def __init__(self):
@@ -54,12 +49,27 @@ class CNN3D(nn.Module):
 
     def forward(self, frames, hand_landmarks, pose_landmarks, face_landmarks):
         # Process frames
-        x = self.pool(torch.relu(self.conv1(frames)))
-        x = self.pool(torch.relu(self.conv2(x)))
-        x = self.pool(torch.relu(self.conv3(x)))
-        x = x.view(x.size(0), -1)
-        x = torch.relu(self.fc1(x))
+        frame_features = []
+        for frame in frames:
+            x = self.pool(torch.relu(self.conv1(frames)))
+            x = self.pool(torch.relu(self.conv2(x)))
+            x = self.pool(torch.relu(self.conv3(x)))
+            x = x.view(x.size(0), -1)
+            frame_features.append(torch.relu(self.fc1(x)))
+        
+        # Check if any frames were extracted
+        if len(frame_features) > 0:
+            frame_features = torch.stack(frame_features, dim=0)
+            frame_features = torch.mean(frame_features, dim=0)
+        else:
+            device = hand_landmarks[0].device if len(hand_landmarks) > 0 else pose_landmarks[0].device if len(pose_landmarks) > 0 else face_landmarks[0].device if len(face_landmarks) > 0 else torch.device("cpu")
+            frame_features = torch.zeros(1, 256, device=device)  # Create a zero tensor if no frames were extracted
 
+
+        hand_landmarks = torch.stack(hand_landmarks, dim=0)
+        pose_landmarks = torch.stack(pose_landmarks, dim=0)
+        face_landmarks = torch.stack(face_landmarks, dim=0)
+        
         # Process hand landmarks
         hand_x = torch.relu(self.hand_fc(hand_landmarks))
         hand_x = self.dropout(hand_x)
@@ -84,6 +94,9 @@ class ASLDataset(Dataset):
         self.df = pd.read_csv(csv_file, sep= "\t", header= 0)
         self.video_folder = video_folder
         self.transform = transform
+        # self.mp_hands = mp.solutions.hands.Hands(static_image_mode=True, min_detection_confidence=0.6)
+        # self.mp_pose = mp.solutions.pose.Pose(static_image_mode=True, min_detection_confidence=0.6)
+        # self.mp_face = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, min_detection_confidence=0.6)
 
     def __len__(self):
         return len(self.df)
@@ -108,7 +121,7 @@ class ASLDataset(Dataset):
         face_landmarks = [torch.tensor(lm).view(-1, self.face_landmark_dim) for lm in face_landmarks]
 
         if self.transform:
-            transformed_frames.append(self.transform(frame) for frame in frames)
+            transformed_frames= [self.transform(frame) for frame in frames]
 
         return transformed_frames, hand_landmarks, pose_landmarks, face_landmarks, sentence
 
@@ -161,11 +174,9 @@ transform = transforms.Compose([
 csv_file = '/mnt/d/Project-6367/Dataset/raw_data/how2sign_realigned_train.csv'
 video_folder = '/mnt/d/Project-6367/Dataset/raw_videos/'
 dataset = ASLDataset(csv_file, video_folder, transform=transform)
-gen = IterDataset(dataset)
 
 # Create DataLoader for batch processing
-dataloader = DataLoader(gen, batch_size=batch_size)
-
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # Create the model and move it to the device
 model = CNN3D().to(device)
@@ -179,9 +190,10 @@ for epoch in range(epochs):
     running_loss = 0.0
 
     for frames, hand_landmarks, pose_landmarks, face_landmarks, labels in dataloader:
-        
-        frames = frames.to(device)
-        labels = labels.to(device)
+        frames = [frame.to(device) for frame in frames]
+        label_encoder = LabelEncoder()
+        encoded_labels = label_encoder.fit_transform(labels)
+        labels = torch.tensor(encoded_labels).to(device)
 
         optimizer.zero_grad()
 

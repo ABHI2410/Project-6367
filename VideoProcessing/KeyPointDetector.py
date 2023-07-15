@@ -26,11 +26,10 @@ class KeyPointDetector:
     def keypoints(self,image):
         mediapipe_holistic = self.holistic.Holistic(static_image_mode = True, min_detection_confidence = 0.6)
         outcome = mediapipe_holistic.process(image)
-        outcome_image = np.zeros(image.shape)
-        self.drawing.draw_landmarks(outcome_image,outcome.left_hand_landmarks,self.holistic.HAND_CONNECTIONS,self.dot_spec,self.hand_spec)
-        self.drawing.draw_landmarks(outcome_image,outcome.right_hand_landmarks,self.holistic.HAND_CONNECTIONS,self.dot_spec,self.hand_spec)
-        self.drawing.draw_landmarks(outcome_image,outcome.face_landmarks,self.holistic.FACEMESH_TESSELATION,self.face_spec,self.face_spec)
-        self.drawing.draw_landmarks(outcome_image,outcome.pose_landmarks,self.holistic.POSE_CONNECTIONS,self.pose_spec,self.pose_spec)
+        self.drawing.draw_landmarks(image,outcome.left_hand_landmarks,self.holistic.HAND_CONNECTIONS,self.dot_spec,self.hand_spec)
+        self.drawing.draw_landmarks(image,outcome.right_hand_landmarks,self.holistic.HAND_CONNECTIONS,self.dot_spec,self.hand_spec)
+        self.drawing.draw_landmarks(image,outcome.face_landmarks,self.holistic.FACEMESH_TESSELATION,self.face_spec,self.face_spec)
+        self.drawing.draw_landmarks(image,outcome.pose_landmarks,self.holistic.POSE_CONNECTIONS,self.pose_spec,self.pose_spec)
         mediapipe_holistic.close()
-        return outcome_image.astype(np.uint8)
+        return image.astype(np.uint8)
     
